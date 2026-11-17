@@ -1,0 +1,77 @@
+# It builds the website, adds the person pages from the Platform's API, publishes to GitHub Pages, and then deletes
+# the earlier uploads, so the only copy of profile content on the website's side is the published page.
+#
+# Rules this workflow keeps (architecture 8.5). Do not weaken them.
+#   1. It builds on a notice from the Platform (workflow_dispatch), on a push, and once a night as a safety net.
+#   2. The person pages come from the API with the site's key, which is a repository secret.
+#   3. No profile content is committed, cached between builds or printed in a log.
+#   4. Earlier Pages uploads are deleted after each successful publish.
+#   5. An address that is no longer in the list is not built, so it answers "not found".
+name: Build and publish the site
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "41 11 * * *"
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+  actions: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # The website's own build. Today the site is the people pages and a front page, so the build copies the
+      # folder site/ into _site. When the rest of the website moves here, its build command replaces this step.
+      - name: Build the site's own pages
+        run: mkdir -p _site && cp -R site/. _site/
+
+      - name: Add the person pages from the Platform
+        env:
+          PLATFORM_API_URL: https://api.airealized.org
+          PLATFORM_SITE_KEY: ${{ secrets.PLATFORM_SITE_KEY }}
+          SITE_BASE_URL: https://airealized.org
+          PRIVACY_POLICY_URL: ${{ vars.PRIVACY_POLICY_URL }}
+          OUT_DIR: _site
+        run: node website-kit/src/build.ts
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+          retention-days: 1
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4
+
+      - name: Delete the earlier uploads
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api "repos/${{ github.repository }}/actions/artifacts?name=github-pages&per_page=100" --paginate \
+            --jq ".artifacts[] | select(.workflow_run.id != ${{ github.run_id }}) | .id" |
+          while read -r id; do
+            gh api -X DELETE "repos/${{ github.repository }}/actions/artifacts/$id"
+          done

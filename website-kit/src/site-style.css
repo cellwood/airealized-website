@@ -1,0 +1,98 @@
+/* AI Realized site style.
+
+   The look of www.airealizedsummit.com, measured on the live pages on November 16, 2026: the home page and
+   /agent-controls-and-the-governance-gap, at window widths of 390, 1,024 and 2,130 pixels.
+
+   The master copy is in cellwood/website-playbook at ai-realized/site-style.css. Change it there first, then
+   copy it to wherever it is used. The README beside the master copy says how each value was found.
+
+   This file only defines names and loads the font. It styles nothing by itself, so any page can load it. */
+
+/* Inter Tight, the one typeface the site uses, in the two weights it uses. SIL Open Font License (fonts/OFL.txt). */
+@font-face {
+  font-family: "Inter Tight";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("fonts/inter-tight-latin-ext-500-normal.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "Inter Tight";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("fonts/inter-tight-latin-500-normal.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Inter Tight";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("fonts/inter-tight-latin-ext-700-normal.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "Inter Tight";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("fonts/inter-tight-latin-700-normal.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+:root {
+  /* Colors, named for what they look like. The comments say where the site uses each one. */
+  --air-teal: #047885;       /* the main color: the teal sections, and links and headings on white */
+  --air-teal-deep: #0a828f;  /* the page background behind the sections, and one band on the home page */
+  --air-cyan: #11c3d2;       /* the color under the balloon photo in the top section. White text on this color
+                                with no photo is too faint to read (about 2.2 to 1), so use teal under text. */
+  --air-charcoal: #353535;   /* the dark bands and the footer */
+  --air-black: #000000;      /* buttons, and text on white */
+  --air-white: #ffffff;
+  --air-off-white: #fafafa;  /* the lightest sections, and the text in the header */
+
+  /* Type: one family, two weights. */
+  --air-font: "Inter Tight", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --air-weight: 500;
+  --air-weight-bold: 700;
+  --air-leading-heading: 1.12;
+  --air-leading-body: 1.84;
+
+  /* Sizes grow with the window. A size is 1rem plus a number of steps. On a phone one step is 1.2% of the
+     window's height, at most 10.8 pixels. On wider screens (below) one step is 1.2% of the window's width, and
+     it stops growing at a window 1,400 pixels wide, where one step is 16.8 pixels. */
+  --air-step: min(1.2vh, 10.8px);
+  --air-size-h1: calc(1rem + 5.6 * var(--air-step));         /* page titles: 76px on a phone, 110px on a wide screen */
+  --air-size-h2: calc(1rem + 3.3 * var(--air-step));         /* section titles: 52px to 71px */
+  --air-size-h3: calc(1rem + 2 * var(--air-step));           /* 38px to 50px */
+  --air-size-name: calc(1rem + 1.2 * var(--air-step));       /* a person's name in a list of speakers: 29px to 36px */
+  --air-size-site-name: calc(1rem + 0.96 * var(--air-step)); /* "AI Realized" in the header: 26px to 32px */
+  --air-size-large: calc(1rem + 0.7 * var(--air-step));      /* lead paragraphs: 24px to 28px */
+  --air-size-h4: calc(1rem + 0.57 * var(--air-step));        /* small headings, and the bold label above a title: 22px to 26px */
+  --air-size-text: calc(1rem + 0.2 * var(--air-step));       /* the text under a person in a list of speakers: 18px to 19px */
+  --air-size-nav: calc(1rem + 0.08 * var(--air-step));       /* menu links: 17px */
+  --air-size-button: calc(1rem + 0.06 * var(--air-step));    /* button labels: 17px */
+  --air-size-small: calc(1rem - 0.02 * var(--air-step));     /* the smallest text: just under 16px */
+
+  /* Spacing. */
+  --air-gutter: 6vw;        /* the space at the left and right edge of the page */
+  --air-header-pad: 6vw;    /* the space above and below the header's contents */
+  --air-gap-people: 100px;  /* the space between people in a list of speakers */
+
+  /* Buttons: black pills with white labels, 51 to 71 pixels tall on the site. */
+  --air-button-bg: var(--air-black);
+  --air-button-text: var(--air-white);
+  --air-button-radius: 300px;
+  --air-button-pad-x: 2.2rem;
+  --air-button-pad-y: 1.1rem;
+}
+
+@media (min-width: 768px) {
+  :root {
+    --air-step: min(1.2vw, 16.8px);
+    --air-gutter: 4vw;
+    --air-header-pad: 2vw;
+  }
+}

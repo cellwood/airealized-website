@@ -1,0 +1,136 @@
+/* Styles for the person pages and the people list, in the look of the AI Realized website.
+   Every color, size and space comes from site-style.css, the record of that look (its master copy is in the
+   website playbook). To restyle these pages for a new site design, change site-style.css, not this file.
+   Text and link colors meet the WCAG 2.2 AA contrast ratio on the backgrounds they are used on. */
+@import url("site-style.css");
+
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--air-white); color: var(--air-black); font-family: var(--air-font); font-weight: var(--air-weight); font-size: var(--air-size-text); line-height: var(--air-leading-body); }
+strong, b { font-weight: var(--air-weight-bold); }
+
+.skip { position: absolute; left: -999rem; }
+.skip:focus { position: static; display: inline-block; padding: 0.5rem 1rem; background: var(--air-white); color: var(--air-black); }
+a:focus-visible, summary:focus-visible { outline: 3px solid currentColor; outline-offset: 3px; }
+
+/* The site's header: its name on the left, the menu on the right, on the color of the section under it. */
+.site-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem 2rem; padding: var(--air-header-pad) var(--air-gutter); background: var(--air-teal); color: var(--air-off-white); line-height: 1.3; }
+.site-header a { color: inherit; text-decoration: none; }
+.site-header a:hover { text-decoration: underline; }
+.site-name { font-size: var(--air-size-site-name); }
+.site-header nav { font-size: var(--air-size-nav); }
+
+/* The top of a page: a teal band, like the top section of the site's pages. */
+.person-header, .page-header { background: var(--air-teal); color: var(--air-white); padding: 1rem var(--air-gutter) clamp(2.5rem, 6vw, 5rem); }
+.person-header { display: grid; grid-template-columns: 1fr; gap: 1.5rem; justify-items: start; }
+.people h1 { margin: 0; font-size: var(--air-size-h2); font-weight: var(--air-weight); line-height: var(--air-leading-heading); }
+.person-header .role-line { margin: 0.6rem 0 0; font-size: var(--air-size-large); line-height: 1.3; }
+/* Every photo is shown at one size, as a circle. The picture fills the circle and is framed by the classes at
+   the end of this file, which the Platform chooses so the face is in the middle. The photo file is not changed. */
+.avatar { display: block; width: 12.5rem; height: 12.5rem; border-radius: 50%; overflow: hidden; background: var(--air-off-white); flex: none; }
+.avatar img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: var(--px, 50%) var(--py, 50%); transform: scale(var(--z, 1)); transform-origin: var(--ox, 50%) var(--oy, 50%); }
+.avatar.initials { display: flex; align-items: center; justify-content: center; color: var(--air-teal); font-size: var(--air-size-h2); font-weight: var(--air-weight-bold); line-height: 1; }
+.topics { list-style: none; padding: 0; margin: 1rem 0 0; display: flex; flex-wrap: wrap; gap: 0.5rem; font-size: var(--air-size-small); line-height: 1.4; }
+.topics li { border: 1px solid currentColor; padding: 0.2rem 0.8rem; border-radius: var(--air-button-radius); }
+.links { margin: 1.5rem 0 0; }
+.links:first-child { margin-top: 0; }
+.button { display: inline-block; padding: var(--air-button-pad-y) var(--air-button-pad-x); border-radius: var(--air-button-radius); background: var(--air-button-bg); color: var(--air-button-text); font-size: var(--air-size-button); line-height: 1.2; text-decoration: none; text-align: center; }
+.button:hover { text-decoration: underline; }
+
+/* The rest of a person page, and the people list: black text on white, as speakers are shown on an event page. */
+.person-body, .people-list { padding: clamp(2rem, 5vw, 4.5rem) var(--air-gutter); }
+.people section + section, .links + section { margin-top: clamp(2rem, 4vw, 3.5rem); }
+.people h2 { margin: 0 0 0.8rem; font-size: var(--air-size-name); font-weight: var(--air-weight); line-height: var(--air-leading-heading); color: var(--air-teal); }
+.people-list a, .person-body a:not(.button) { color: var(--air-teal); text-underline-offset: 0.15em; }
+.bio { margin: 0 0 1em; max-width: 46rem; }
+.bio:last-child { margin-bottom: 0; }
+
+/* Work, newest first, as cards: what plays on top, then what it is. A card's border is 15% black. */
+.items, .cards { list-style: none; padding: 0; margin: 0; }
+.items { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr)); gap: 1.5rem; }
+.item { display: flex; flex-direction: column; border: 1px solid rgba(0, 0, 0, 0.15); border-radius: 14px; overflow: hidden; background: var(--air-white); }
+.item-text { padding: 1rem 1.2rem 1.2rem; }
+.item h3 { margin: 0; font-size: var(--air-size-h4); font-weight: var(--air-weight); line-height: 1.25; }
+.person-body .item h3 a { color: var(--air-black); text-decoration-color: var(--air-teal); }
+.facts, .also { margin: 0.4rem 0 0; font-size: var(--air-size-small); line-height: 1.5; color: var(--air-charcoal); }
+.facts .role { font-weight: var(--air-weight-bold); }
+/* A video shows YouTube's picture of it with a play button. Opening it puts the player in the picture's place. */
+.player { margin: 0; width: 100%; }
+.player summary { display: block; position: relative; cursor: pointer; list-style: none; }
+.player summary::-webkit-details-marker { display: none; }
+.player .thumb { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; background: var(--air-charcoal); }
+.player .play { position: absolute; left: 0.8rem; bottom: 0.8rem; padding: 0.55rem 1.1rem; border-radius: var(--air-button-radius); background: var(--air-button-bg); color: var(--air-button-text); font-size: var(--air-size-small); line-height: 1.2; }
+.player[open] .thumb { display: none; }
+.player[open] .play { position: static; display: inline-block; margin: 0.6rem 0.8rem; }
+.player iframe { display: block; width: 100%; aspect-ratio: 16 / 9; border: 0; }
+audio.player { display: block; width: calc(100% - 2.4rem); margin: 1.2rem 1.2rem 0; }
+
+/* The people list: round photos with the name under each, as on an event page. */
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); gap: 3rem 2.5rem; text-align: center; }
+.card .avatar { width: 9rem; height: 9rem; margin: 0 auto; }
+.card .avatar.initials { font-size: var(--air-size-h3); }
+.people .card h2 { margin: 1rem 0 0; font-size: var(--air-size-h4); line-height: 1.25; }
+.people-list .card h2 a { color: var(--air-black); text-decoration-color: var(--air-teal); }
+.card .role-line { margin: 0.3rem 0 0; font-size: var(--air-size-small); line-height: 1.5; color: var(--air-charcoal); }
+
+/* The site's footer: a charcoal band with the invitation to join, then the privacy policy link. */
+.site-footer { background: var(--air-charcoal); color: var(--air-white); padding: clamp(2rem, 4vw, 3.5rem) var(--air-gutter); }
+.site-footer a:not(.button) { color: inherit; text-underline-offset: 0.15em; }
+.join { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1.5rem 3rem; margin-bottom: 2rem; }
+.join h2 { margin: 0; font-size: var(--air-size-h3); font-weight: var(--air-weight); line-height: var(--air-leading-heading); }
+.join p { margin: 0.4rem 0 0; }
+.join .join-links { display: flex; flex-direction: column; gap: 0.7rem; margin: 0; }
+.legal { margin: 0; font-size: var(--air-size-small); }
+
+@media (min-width: 768px) {
+  .person-header { grid-template-columns: auto 1fr; gap: 4vw; align-items: center; }
+}
+
+/* The note at the top of a private preview. The reader and the control center add it. The published page never has it. */
+.preview-note { background: #fff7e0; border-bottom: 2px solid #8a5a00; color: #222; padding: 12px var(--air-gutter); margin: 0; font-size: 1rem; line-height: 1.5; }
+.preview-note p { max-width: 60rem; margin: 0; }
+.preview-note a { color: inherit; }
+
+/* How a photo is framed in its circle: where it sits (px, py), the point it is enlarged around (ox, oy) and by
+   how much (z). These rules are generated by src/frame.ts. A test fails if the two differ. */
+.px-0{--px:0%}.py-0{--py:0%}.ox-0{--ox:0%}.oy-0{--oy:0%}
+.px-5{--px:5%}.py-5{--py:5%}.ox-5{--ox:5%}.oy-5{--oy:5%}
+.px-10{--px:10%}.py-10{--py:10%}.ox-10{--ox:10%}.oy-10{--oy:10%}
+.px-15{--px:15%}.py-15{--py:15%}.ox-15{--ox:15%}.oy-15{--oy:15%}
+.px-20{--px:20%}.py-20{--py:20%}.ox-20{--ox:20%}.oy-20{--oy:20%}
+.px-25{--px:25%}.py-25{--py:25%}.ox-25{--ox:25%}.oy-25{--oy:25%}
+.px-30{--px:30%}.py-30{--py:30%}.ox-30{--ox:30%}.oy-30{--oy:30%}
+.px-35{--px:35%}.py-35{--py:35%}.ox-35{--ox:35%}.oy-35{--oy:35%}
+.px-40{--px:40%}.py-40{--py:40%}.ox-40{--ox:40%}.oy-40{--oy:40%}
+.px-45{--px:45%}.py-45{--py:45%}.ox-45{--ox:45%}.oy-45{--oy:45%}
+.px-50{--px:50%}.py-50{--py:50%}.ox-50{--ox:50%}.oy-50{--oy:50%}
+.px-55{--px:55%}.py-55{--py:55%}.ox-55{--ox:55%}.oy-55{--oy:55%}
+.px-60{--px:60%}.py-60{--py:60%}.ox-60{--ox:60%}.oy-60{--oy:60%}
+.px-65{--px:65%}.py-65{--py:65%}.ox-65{--ox:65%}.oy-65{--oy:65%}
+.px-70{--px:70%}.py-70{--py:70%}.ox-70{--ox:70%}.oy-70{--oy:70%}
+.px-75{--px:75%}.py-75{--py:75%}.ox-75{--ox:75%}.oy-75{--oy:75%}
+.px-80{--px:80%}.py-80{--py:80%}.ox-80{--ox:80%}.oy-80{--oy:80%}
+.px-85{--px:85%}.py-85{--py:85%}.ox-85{--ox:85%}.oy-85{--oy:85%}
+.px-90{--px:90%}.py-90{--py:90%}.ox-90{--ox:90%}.oy-90{--oy:90%}
+.px-95{--px:95%}.py-95{--py:95%}.ox-95{--ox:95%}.oy-95{--oy:95%}
+.px-100{--px:100%}.py-100{--py:100%}.ox-100{--ox:100%}.oy-100{--oy:100%}
+.z-100{--z:1}
+.z-110{--z:1.1}
+.z-120{--z:1.2}
+.z-130{--z:1.3}
+.z-140{--z:1.4}
+.z-150{--z:1.5}
+.z-160{--z:1.6}
+.z-170{--z:1.7}
+.z-180{--z:1.8}
+.z-190{--z:1.9}
+.z-200{--z:2}
+.z-210{--z:2.1}
+.z-220{--z:2.2}
+.z-230{--z:2.3}
+.z-240{--z:2.4}
+.z-250{--z:2.5}
+.z-260{--z:2.6}
+.z-270{--z:2.7}
+.z-280{--z:2.8}
+.z-290{--z:2.9}
+.z-300{--z:3}
