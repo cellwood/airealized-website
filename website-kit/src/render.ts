@@ -97,13 +97,33 @@ function player(url: string, title: string): string {
   const id = host === 'youtu.be' ? u.pathname.slice(1) : host.endsWith('youtube.com') ? u.searchParams.get('v') : null;
   if (id && /^[A-Za-z0-9_-]{6,20}$/.test(id)) {
     // The card's picture is YouTube's own picture of the video, loaded from YouTube. The video itself loads only
-    // when the visitor opens it, in YouTube's no-cookie player.
-    return `<details class="player"><summary><img class="thumb" src="https://i.ytimg.com/vi/${id}/hqdefault.jpg" alt="" loading="lazy" width="480" height="360"><span class="play">Play the video here</span></summary><iframe src="https://www.youtube-nocookie.com/embed/${id}" title="${esc(title)}" loading="lazy" allowfullscreen></iframe></details>`;
+    // when the visitor opens it, in YouTube's no-cookie player. YouTube's player refuses to start ("Error 153")
+    // unless the frame's request says which site embeds it, so the frame states the site and nothing more: the
+    // origin, never the page's address. That holds whatever referrer rule the page itself is served with, so a
+    // preview whose address holds a token still passes on no part of that address.
+    return `<details class="player"><summary><img class="thumb" src="https://i.ytimg.com/vi/${id}/hqdefault.jpg" alt="" loading="lazy" width="480" height="360"><span class="play">Play the video here</span></summary><iframe src="https://www.youtube-nocookie.com/embed/${id}" title="${esc(title)}" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></details>`;
   }
   if (/\.(mp3|m4a)$/i.test(u.pathname)) {
     return `<audio class="player" controls preload="none" src="${esc(url)}" aria-label="${esc(`Listen to ${title}`)}"></audio>`;
   }
   return '';
+}
+
+// Whether an item has something that plays in place.
+function plays(item: Item): boolean {
+  return item.links.some((l) => {
+    const url = safeUrl(l.url);
+    return url !== null && player(url, item.title) !== '';
+  });
+}
+
+// The order the API gives is kept (newest first). Within one day, what does not play comes first, so an event's
+// own row sits right above the recordings of it.
+function inOrder(items: Item[]): Item[] {
+  return items
+    .map((item, i) => ({ item, i, plain: plays(item) ? 1 : 0 }))
+    .sort((a, b) => (a.item.published_on === b.item.published_on && a.item.published_on ? a.plain - b.plain || a.i - b.i : a.i - b.i))
+    .map((x) => x.item);
 }
 
 // Each item shows its source, its date and the professional's role in it (R67), and links to where it is hosted (R21).
@@ -122,7 +142,9 @@ function itemHtml(item: Item): string {
   // Each item is a card: what plays, on top, then what it is. The first link that can play in place is the one
   // played, so an episode whose first link is its page still plays its audio here.
   const media = links.map((l) => player(l.url, item.title)).find((m) => m !== '') ?? '';
-  return `<li class="item">${media}<div class="item-text"><h3>${title}</h3><p class="facts">${facts.join(' <span aria-hidden="true">·</span> ')}</p>${others.length ? `<p class="also">${others.join(', ')}</p>` : ''}</div></li>`;
+  // An item with nothing to play (an event, an article) is a short row across the list, not a card with an
+  // empty picture's worth of space.
+  return `<li class="item${media ? '' : ' plain'}">${media}<div class="item-text"><h3>${title}</h3><p class="facts">${facts.join(' <span aria-hidden="true">·</span> ')}</p>${others.length ? `<p class="also">${others.join(', ')}</p>` : ''}</div></li>`;
 }
 
 // The photo, or the initials in its place when the professional asked for the photo to be removed (R65).
@@ -203,7 +225,7 @@ ${topics.length ? `<ul class="topics" aria-label="Known for">${topics.map((t) =>
 ${paragraphs.length || linkedin || items.length ? `<div class="person-body">
 ${paragraphs.length ? `<section aria-labelledby="about"><h2 id="about">About</h2>${paragraphs.map((x) => `<p class="bio">${esc(x)}</p>`).join('')}</section>` : ''}
 ${linkedin ? `<p class="links"><a class="button" href="${esc(linkedin)}" rel="me">${esc(name)} on LinkedIn</a></p>` : ''}
-${items.length ? `<section aria-labelledby="work"><h2 id="work">Work</h2><ul class="items">${items.map(itemHtml).join('\n')}</ul></section>` : ''}
+${items.length ? `<section aria-labelledby="work"><h2 id="work">Work</h2><ul class="items">${inOrder(items).map(itemHtml).join('\n')}</ul></section>` : ''}
 </div>` : ''}
 </article>`;
 

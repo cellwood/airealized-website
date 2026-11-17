@@ -53,6 +53,10 @@ a:focus-visible, summary:focus-visible { outline: 3px solid currentColor; outlin
 .person-body .item h3 a { color: var(--air-black); text-decoration-color: var(--air-teal); }
 .facts, .also { margin: 0.4rem 0 0; font-size: var(--air-size-small); line-height: 1.5; color: var(--air-charcoal); }
 .facts .role { font-weight: var(--air-weight-bold); }
+/* An item with nothing to play is a short row across the whole list: its title, then its facts beside it. */
+.item.plain { grid-column: 1 / -1; }
+.item.plain .item-text { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.2rem 1.5rem; padding: 0.9rem 1.2rem; }
+.item.plain .facts, .item.plain .also { margin: 0; }
 /* A video shows YouTube's picture of it with a play button. Opening it puts the player in the picture's place. */
 .player { margin: 0; width: 100%; }
 .player summary { display: block; position: relative; cursor: pointer; list-style: none; }
