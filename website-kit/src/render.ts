@@ -62,13 +62,15 @@ export const listUrl = (config: SiteConfig): string => `${config.siteBaseUrl}${c
 
 const ROLE: Record<string, string> = {
   keynote: 'Keynote speaker', speaker: 'Speaker', panelist: 'Panelist', moderator: 'Moderator', presenter: 'Presenter', host: 'Host', guest: 'Guest',
-  author: 'Author', subject: 'Featured',
+  // "subject" is someone an article or a readout features without having written it.
+  author: 'Author', subject: 'Featured in',
 };
 const KIND: Record<string, string> = {
   talk: 'Talk', panel: 'Panel', podcast_episode: 'Podcast episode', article: 'Article', video: 'Video', clip: 'Clip', quote: 'Quote',
   event: 'Event',
 };
-const SOURCE: Record<string, string> = { redcircle: 'AI Realized Podcast', youtube: 'YouTube', substack: 'AI Realized Now', partner_work: 'AI Realized' };
+// "partner_article" is something AI Realized published that is attached to an appearance: a readout, an article.
+const SOURCE: Record<string, string> = { redcircle: 'AI Realized Podcast', youtube: 'YouTube', substack: 'AI Realized Now', partner_work: 'AI Realized', partner_article: 'AI Realized' };
 
 // The person's role in an item, in plain words: the wording set on the appearance record when there is one,
 // otherwise every role they had ("Speaker and moderator").
