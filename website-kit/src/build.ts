@@ -3,6 +3,7 @@
 //   {out}/people/index.html                the list of live person pages
 //   {out}/people/{address}/index.html      one person page
 //   {out}/people/{address}/photo.jpg       the photo, when the page shows one
+//   {out}/people/{address}/img/{item}.jpg  the Platform's copy of an item's picture (the timeline layout)
 //   {out}/people/sitemap.xml               every person page address
 //   {out}/people/people.css                the stylesheet, with site-style.css and fonts/ beside it
 // Nothing from a profile is written anywhere else, committed, cached between builds, or printed. The log holds
@@ -15,18 +16,20 @@
 //   PRIVACY_POLICY_URL    the address of the privacy policy
 //   SITE_HOME_URL         where the site's name in the header leads (optional; the current AI Realized site until it moves)
 //   OUT_DIR               the build output folder
+//   PEOPLE_LAYOUT         "list" or "timeline" (optional; the kit's own default when left out)
 import { copyFile, mkdir, rm, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { KIT_ASSETS, kitAssetUrl } from './assets.ts';
-import { AI_REALIZED, personUrl, renderPeopleList, renderPersonPage, renderSitemap } from './render.ts';
-import type { Person, SiteConfig } from './render.ts';
+import { AI_REALIZED, DEFAULT_LAYOUT, personUrl, renderPeopleList, renderPersonPage, renderSitemap } from './render.ts';
+import type { Layout, Person, SiteConfig } from './render.ts';
 
-export type BuildOptions = { apiUrl: string; siteKey: string; outDir: string; config: SiteConfig };
-export type BuildResult = { pages: number; photos: number; photos_unavailable: number; gone_during_build: number };
+export type BuildOptions = { apiUrl: string; siteKey: string; outDir: string; config: SiteConfig; layout?: Layout };
+export type BuildResult = { pages: number; photos: number; photos_unavailable: number; pictures: number; pictures_unavailable: number; gone_during_build: number };
 
 const EXT: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
 const SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+const ITEM_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 export async function buildPeople(opts: BuildOptions): Promise<BuildResult> {
   const { config } = opts;
@@ -43,7 +46,8 @@ export async function buildPeople(opts: BuildOptions): Promise<BuildResult> {
   await rm(peopleDir, { recursive: true, force: true });
   await mkdir(peopleDir, { recursive: true });
 
-  const result: BuildResult = { pages: 0, photos: 0, photos_unavailable: 0, gone_during_build: 0 };
+  const layout = opts.layout ?? DEFAULT_LAYOUT;
+  const result: BuildResult = { pages: 0, photos: 0, photos_unavailable: 0, pictures: 0, pictures_unavailable: 0, gone_during_build: 0 };
   const cards: Array<{ person: Person; photoSrc: string | null }> = [];
   const slugs: string[] = [];
 
@@ -78,7 +82,26 @@ export async function buildPeople(opts: BuildOptions): Promise<BuildResult> {
     }
     if (!res.ok) throw new Error(`the Platform answered ${res.status} for a person page`);
     const { person, structured_data } = (await res.json()) as { person: Person; structured_data: unknown };
-    await writeFile(join(dir, 'index.html'), renderPersonPage(person, structured_data, config, photoFile));
+
+    // The timeline's pictures: the Platform's own copy of each item's picture, written beside the page, so the
+    // page loads nothing from the site a picture first came from. A picture that cannot be had leaves a plain block.
+    const pictures = new Map<string, string>();
+    if (layout === 'timeline') {
+      for (const item of person.items ?? []) {
+        if (!item.image || !ITEM_ID.test(item.item_id) || pictures.has(item.item_id)) continue;
+        const got = await call(`/v1/images/${item.item_id}`);
+        const ext = EXT[got.headers.get('content-type') ?? ''];
+        if (got.ok && ext) {
+          await mkdir(join(dir, 'img'), { recursive: true });
+          await writeFile(join(dir, 'img', `${item.item_id}.${ext}`), Buffer.from(await got.arrayBuffer()));
+          pictures.set(item.item_id, `img/${item.item_id}.${ext}`);
+          result.pictures += 1;
+        } else {
+          result.pictures_unavailable += 1;
+        }
+      }
+    }
+    await writeFile(join(dir, 'index.html'), renderPersonPage(person, structured_data, config, photoFile, { layout, pictureSrc: (item) => pictures.get(item.item_id) ?? null }));
     cards.push({ person: entry, photoSrc: photoFile ? `${config.peoplePath}/${entry.slug}/${photoFile}` : null });
     slugs.push(entry.slug);
     result.pages += 1;
@@ -112,6 +135,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
       peoplePath: process.env.PEOPLE_PATH ?? '/people',
       privacyPolicyUrl: need('PRIVACY_POLICY_URL'),
     },
+    layout: process.env.PEOPLE_LAYOUT === 'timeline' ? 'timeline' : process.env.PEOPLE_LAYOUT === 'list' ? 'list' : undefined,
   });
   console.log(JSON.stringify(result));
 }

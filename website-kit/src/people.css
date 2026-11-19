@@ -68,6 +68,160 @@ a:focus-visible, summary:focus-visible { outline: 3px solid currentColor; outlin
 .player iframe { display: block; width: 100%; aspect-ratio: 16 / 9; border: 0; }
 audio.player { display: block; width: calc(100% - 2.4rem); margin: 1.2rem 1.2rem 0; }
 
+/* The timeline: one card for each appearance, side by side under a band for each year. In the page's HTML the
+   newest comes first. On screen the row runs oldest to newest, left to right, and opens at its right end, which
+   is what the two reversed rows do. The first year's margin keeps a short row at the left. */
+.timeline { position: relative; --tl-card: clamp(13rem, 21vw, 15.5rem); --tl-gap: 0.9rem; }
+.tl-sr, .tl-f { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+.tl-f { appearance: none; }
+
+/* The filter chips. Each is the label of a hidden choice, so they work with a keyboard and without a script. */
+.tl-chips { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0 0 1.1rem; font-size: var(--air-size-small); line-height: 1.2; }
+.tl-chips label { padding: 0.45rem 1.1rem; border: 1px solid rgba(0, 0, 0, 0.3); border-radius: var(--air-button-radius); cursor: pointer; }
+#tl-f-all:checked ~ .tl-chips label[for="tl-f-all"], #tl-f-talks:checked ~ .tl-chips label[for="tl-f-talks"],
+#tl-f-podcasts:checked ~ .tl-chips label[for="tl-f-podcasts"], #tl-f-articles:checked ~ .tl-chips label[for="tl-f-articles"] { background: var(--air-teal); border-color: var(--air-teal); color: var(--air-white); }
+#tl-f-all:focus-visible ~ .tl-chips label[for="tl-f-all"], #tl-f-talks:focus-visible ~ .tl-chips label[for="tl-f-talks"],
+#tl-f-podcasts:focus-visible ~ .tl-chips label[for="tl-f-podcasts"], #tl-f-articles:focus-visible ~ .tl-chips label[for="tl-f-articles"] { outline: 3px solid var(--air-black); outline-offset: 3px; }
+#tl-f-talks:checked ~ .tl-scroll .tl-card:not(.f-talks), #tl-f-talks:checked ~ .tl-scroll .tl-year:not(.f-talks),
+#tl-f-podcasts:checked ~ .tl-scroll .tl-card:not(.f-podcasts), #tl-f-podcasts:checked ~ .tl-scroll .tl-year:not(.f-podcasts),
+#tl-f-articles:checked ~ .tl-scroll .tl-card:not(.f-articles), #tl-f-articles:checked ~ .tl-scroll .tl-year:not(.f-articles) { display: none; }
+
+.tl-scroll { position: relative; }
+.tl-row { display: flex; flex-direction: row-reverse; gap: 1.4rem; overflow-x: auto; padding: 0 0 1rem; scroll-snap-type: x proximity; overscroll-behavior-x: contain; }
+.people .tl-row .tl-year { flex: none; display: flex; flex-direction: column; min-width: 0; margin-top: 0; }
+.people .tl-row .tl-year:first-child { margin-right: auto; }
+/* The band for a year stretches across that year's cards. The year stays in view while its cards scroll by. */
+.people .tl-band { margin: 0 0 0.6rem; padding: 0.35rem 0.9rem; border-radius: 8px; background: var(--air-teal); color: var(--air-white); font-size: var(--air-size-small); font-weight: var(--air-weight-bold); line-height: 1.3; }
+.tl-band span { position: sticky; left: 0.9rem; }
+.tl-cards { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: row-reverse; gap: var(--tl-gap); }
+.tl-card { flex: none; width: var(--tl-card); scroll-snap-align: start; }
+.tl-open { display: block; width: 100%; margin: 0; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.tl-open:focus-visible { outline: 3px solid var(--air-black); outline-offset: 3px; border-radius: 14px; }
+
+/* The picture block of a card: a strip that names the source, in the color of the kind of work (an event dark,
+   a podcast cyan, an article teal), and under it the picture, 16 wide to 9 high. A picture is shown whole, on a
+   dark background, so nothing in it is cut off. With no picture the block is plain, in the color of its kind. */
+.tl-image { display: block; position: relative; border-radius: 14px; overflow: hidden; background: var(--air-charcoal); }
+.tl-strip { display: block; padding: 0.4rem 2.4rem 0.4rem 0.75rem; background: var(--air-charcoal); color: var(--air-white); font-size: 0.82rem; font-weight: var(--air-weight-bold); line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tl-strip:empty { display: none; }
+.k-episode .tl-strip { background: var(--air-cyan); color: var(--air-black); }
+.k-article .tl-strip { background: var(--air-teal); color: var(--air-white); }
+.tl-media { position: absolute; top: 0.3rem; right: 0.4rem; width: 1.5rem; height: 1.5rem; border-radius: 50%; background: rgba(0, 0, 0, 0.6); color: var(--air-white); display: flex; align-items: center; justify-content: center; }
+.tl-picture { display: block; position: relative; aspect-ratio: 16 / 9; background: var(--air-charcoal); }
+.k-episode .tl-picture { background: var(--air-teal-deep); }
+.k-article .tl-picture:not(:has(.tl-lead)) { background: var(--air-teal-deep); }
+.tl-lead { display: block; width: 100%; height: 100%; object-fit: contain; }
+/* A podcast's square art sits whole in the middle of its colored block. */
+.tl-lead.art { box-sizing: border-box; padding: 5% 0; }
+/* The small pictures: the next items of the appearance, in the order the ribbon plays them. */
+.tl-minis { position: absolute; left: 0.4rem; bottom: 0.4rem; display: flex; gap: 0.25rem; }
+.tl-mini { display: block; width: 2rem; height: 1.25rem; box-sizing: border-box; border: 1.5px solid var(--air-white); border-radius: 3px; object-fit: cover; background: var(--air-charcoal); }
+.tl-mini.m-article { background: var(--air-teal); }
+.tl-mini.m-episode { background: var(--air-cyan); }
+
+.tl-date { display: block; margin: 0.6rem 0 0.15rem; font-size: 0.75rem; letter-spacing: 0.08em; line-height: 1.3; color: var(--air-charcoal); }
+/* One line for each item, "Talk: its title", cut off after two lines. */
+.tl-line { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; margin: 0 0 0.25rem; font-size: 0.98rem; line-height: 1.3; }
+.tl-line b { font-weight: var(--air-weight-bold); }
+.tl-open:hover .tl-line { text-decoration: underline; text-decoration-color: var(--air-teal); text-underline-offset: 0.15em; }
+.tl-tags { list-style: none; margin: 0.35rem 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0.3rem; font-size: 0.75rem; line-height: 1.3; }
+.tl-tags li { padding: 0.12rem 0.55rem; border-radius: 0.8rem; background: rgba(0, 0, 0, 0.07); color: var(--air-charcoal); }
+
+/* The arrows show only when the row holds more cards than fit, which the script decides. */
+.tl-arrow { position: absolute; top: calc(4.2rem + var(--tl-card) * 0.28); z-index: 1; width: 2.6rem; height: 2.6rem; margin-top: -1.3rem; padding: 0; border: 1px solid rgba(0, 0, 0, 0.2); border-radius: 50%; background: var(--air-white); color: var(--air-black); box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.tl-arrow[hidden] { display: none; }
+.tl-prev { left: -0.6rem; }
+.tl-next { right: -0.6rem; }
+
+/* The list view of a card ("All items"): every item of the appearance. It opens over the page and closes with
+   its button, the Escape key or a click outside it. Without a script the card's button opens it directly. */
+.tl-panel { box-sizing: border-box; width: min(46rem, calc(100vw - 2rem)); max-height: calc(100vh - 2rem); max-height: calc(100dvh - 2rem); margin: auto; padding: 1.4rem 1.5rem 1.6rem; border: 0; border-radius: 14px; overflow: auto; background: var(--air-white); color: var(--air-black); box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35); text-align: left; }
+.tl-panel::backdrop { background: rgba(0, 0, 0, 0.55); }
+@supports not selector(:popover-open) {
+  .tl-panel { display: none; }
+  .tl-panel.is-open { display: block; position: fixed; z-index: 10; top: 1rem; left: 50%; transform: translateX(-50%); }
+}
+.tl-panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+.tl-eyebrow { margin: 0 0 0.2rem; font-size: var(--air-size-small); font-weight: var(--air-weight-bold); line-height: 1.3; color: var(--air-teal); }
+.people .tl-panel h4 { margin: 0; font-size: var(--air-size-h4); font-weight: var(--air-weight); line-height: 1.2; }
+.tl-when { margin: 0.35rem 0 0; font-size: var(--air-size-small); line-height: 1.5; color: var(--air-charcoal); }
+.tl-when .role, .tl-item .role { font-weight: var(--air-weight-bold); }
+.tl-close { flex: none; width: 2.4rem; height: 2.4rem; padding: 0; border: 0; border-radius: 50%; background: var(--air-black); color: var(--air-white); font: inherit; font-size: 1.5rem; line-height: 1; cursor: pointer; }
+.tl-items { list-style: none; margin: 1.2rem 0 0; padding: 0; display: grid; gap: 1.2rem; }
+.tl-item { border: 1px solid rgba(0, 0, 0, 0.15); border-radius: 12px; overflow: hidden; }
+.tl-item-text { padding: 0.8rem 1rem 0.95rem; }
+.tl-item .facts { margin: 0; }
+.people .tl-item h5 { margin: 0.25rem 0 0; font-size: var(--air-size-text); font-weight: var(--air-weight); line-height: 1.3; }
+.person-body .tl-item h5 a { color: var(--air-black); text-decoration-color: var(--air-teal); }
+.tl-panel .tl-tags { margin-top: 1.1rem; font-size: var(--air-size-small); }
+.tl-page { margin: 1.1rem 0 0; font-size: var(--air-size-small); }
+.player .thumb.none { background: var(--air-charcoal); }
+
+/* The story ribbon of a card: its items one after another, each in a frame 16 wide to 9 high. It fills the
+   screen, dark, like stories. Across the top: one bar for each item, then the name of the event with its year,
+   the date and the person's role, and the buttons. The script opens it and moves it on. */
+.tl-ribbon { box-sizing: border-box; inset: 0; width: 100%; max-width: none; height: 100%; max-height: none; margin: 0; padding: 0; border: 0; background: var(--air-black); color: var(--air-white); overflow: hidden auto; text-align: left; }
+.tl-ribbon::backdrop { background: var(--air-black); }
+/* The page behind an open ribbon does not scroll. */
+html:has(.tl-ribbon[open]) { overflow: hidden; }
+.tl-rb { box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; width: min(72rem, 100%, (100vh - 15rem) * 16 / 9 + 9.2rem); min-width: min(100%, 20rem); min-height: 100%; margin: 0 auto; padding: 0.9rem 1rem 1.2rem; }
+.tl-rb:focus { outline: none; }
+.tl-rb-bars { display: flex; gap: 4px; }
+.tl-rb-bars span { flex: 1; height: 3px; border-radius: 2px; overflow: hidden; background: rgba(255, 255, 255, 0.32); }
+.tl-rb-bars i { display: block; width: 0; height: 100%; background: var(--air-white); }
+.tl-rb-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin: 0.7rem 0 0.8rem; }
+.tl-rb-title { margin: 0; font-size: var(--air-size-small); line-height: 1.4; color: rgba(255, 255, 255, 0.82); }
+.tl-rb-title b { font-weight: var(--air-weight-bold); color: var(--air-white); }
+.tl-rb-title > * + *::before { content: "\00b7"; margin: 0 0.45em; color: rgba(255, 255, 255, 0.55); font-weight: var(--air-weight); }
+.tl-rb-tools { flex: none; display: flex; align-items: center; gap: 0.4rem; }
+.tl-rb-tools button { display: flex; align-items: center; justify-content: center; min-width: 2.4rem; height: 2.4rem; padding: 0 0.6rem; border: 1px solid rgba(255, 255, 255, 0.4); border-radius: 1.2rem; background: transparent; color: var(--air-white); font: inherit; font-size: var(--air-size-small); line-height: 1; cursor: pointer; }
+.tl-rb-tools button:hover, .tl-rb-tools button:focus-visible { background: rgba(255, 255, 255, 0.16); }
+.tl-ribbon button:focus-visible, .tl-ribbon a:focus-visible { outline: 3px solid var(--air-cyan); outline-offset: 2px; }
+.tl-rb-close { font-size: 1.5rem; }
+/* Each of the two buttons shows the sign of what pressing it does next. */
+.tl-rb-pause[aria-pressed="false"] svg:last-child, .tl-rb-pause[aria-pressed="true"] svg:first-child { display: none; }
+.tl-rb-mute[aria-pressed="true"] svg:last-child, .tl-rb-mute[aria-pressed="false"] svg:first-child { display: none; }
+.tl-rb-frames { list-style: none; margin: 0; padding: 0; }
+.tl-frame[hidden] { display: none; }
+.tl-stage { position: relative; aspect-ratio: 16 / 9; border-radius: 12px; overflow: hidden; background: var(--air-charcoal); }
+.tl-frame.k-episode .tl-stage, .tl-frame.k-article .tl-stage:not(:has(img)) { background: var(--air-teal-deep); }
+.tl-frame-picture { display: block; width: 100%; height: 100%; object-fit: contain; }
+.tl-frame-picture.art { box-sizing: border-box; padding: 4% 0; }
+.tl-player { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.tl-frame-title { margin: 0.9rem 0 0; font-size: var(--air-size-text); line-height: 1.35; }
+.tl-frame-title b { font-weight: var(--air-weight-bold); }
+.tl-frame-go { margin: 0.8rem 0 0; }
+.tl-frame-go a, .tl-listen { display: inline-block; padding: 0.6rem 1.6rem; border: 0; border-radius: var(--air-button-radius); background: var(--air-white); color: var(--air-black); font: inherit; font-size: var(--air-size-small); font-weight: var(--air-weight-bold); line-height: 1.2; text-decoration: none; cursor: pointer; }
+.person-body .tl-frame-go a { color: var(--air-black); text-decoration: none; }
+/* The arrows sit beside the frame, in a margin of their own, level with the middle of the frame. Nothing of the
+   page's is ever in front of a video: YouTube's rules for embedded players forbid it. A picture takes taps itself
+   (the script: the left third goes back, the rest goes on). The body is a container so the arrows can be as tall
+   as the frame: a container's width is measured inside its margins, so it is the frame's width. */
+.tl-rb-body { position: relative; container-type: inline-size; padding: 0 3.6rem; }
+.tl-rb-prev, .tl-rb-next { position: absolute; top: 0; width: 3.6rem; height: calc(100cqw * 9 / 16); padding: 0; border: 0; background: transparent; color: var(--air-white); cursor: pointer; display: flex; align-items: center; }
+.tl-rb-prev { left: 0; justify-content: flex-start; }
+.tl-rb-next { right: 0; justify-content: flex-end; }
+.tl-rb-prev svg, .tl-rb-next svg { width: 2.6rem; height: 2.6rem; padding: 0.55rem; box-sizing: border-box; border: 1px solid rgba(255, 255, 255, 0.4); border-radius: 50%; }
+.tl-rb-prev:hover svg, .tl-rb-next:hover svg, .tl-rb-prev:focus-visible svg, .tl-rb-next:focus-visible svg { background: rgba(255, 255, 255, 0.16); }
+/* On the first item there is nothing to go back to, so the arrow is not drawn. */
+.tl-ribbon[data-first="true"] .tl-rb-prev svg { visibility: hidden; }
+.tl-frame:not([data-kind="video"]) .tl-stage { cursor: pointer; }
+/* YouTube asks that its player is never smaller than 200 pixels a side. */
+.tl-frame[data-kind="video"] .tl-stage { min-height: 200px; }
+@media (max-width: 40rem) {
+  /* On a phone the ribbon is the whole screen: the bars at the top, the frame across the full width. */
+  .tl-rb { width: 100%; padding: 0.7rem 0 1rem; justify-content: flex-start; }
+  .tl-rb-bars, .tl-rb-head, .tl-frame-title, .tl-frame-go { margin-left: 0.8rem; margin-right: 0.8rem; }
+  .tl-rb-head { flex-direction: column; gap: 0.6rem; }
+  .tl-rb-tools { align-self: flex-end; }
+  .tl-rb-body { margin-top: auto; margin-bottom: auto; }
+  .tl-stage { border-radius: 0; }
+  /* The frame takes the full width, and the two arrows sit under it, at the left and the right. */
+  .tl-rb-body { display: flex; flex-wrap: wrap; justify-content: space-between; padding: 0; }
+  .tl-rb-frames { flex: 0 0 100%; }
+  .tl-rb-prev, .tl-rb-next { position: static; width: auto; height: auto; margin: 1rem 0.8rem 0; }
+}
+
 /* The people list: round photos with the name under each, as on an event page. */
 .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); gap: 3rem 2.5rem; text-align: center; }
 .card .avatar { width: 9rem; height: 9rem; margin: 0 auto; }

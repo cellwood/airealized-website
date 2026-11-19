@@ -3,17 +3,13 @@
 // A page shows what the API returned and nothing else. The structured data goes into the page unchanged.
 
 import { frameClasses } from './frame.ts';
+import { dateOf, esc, longDate, player, plays, roleText, safeUrl, sourceName, text, KIND } from './parts.ts';
+import type { Item } from './parts.ts';
+import { timelineHtml } from './timeline.ts';
 
-export type Item = {
-  item_id: string;
-  kind: string;
-  title: string;
-  published_on: string | null;
-  role: string;
-  roles?: string[] | null; // every role the person had, when the item belongs to an appearance record
-  role_label?: string | null; // the role in the partner organization's own words, when it set them
-  links: Array<{ url: string; source: string | null }>;
-};
+export { esc, safeUrl } from './parts.ts';
+export type { Appearance, Item } from './parts.ts';
+
 export type Person = { slug: string; fields: Record<string, unknown>; items?: Item[] };
 
 export type SiteConfig = {
@@ -24,6 +20,21 @@ export type SiteConfig = {
   stylesheetHref?: string; // defaults to the kit's own stylesheet beside the list page
   homeUrl?: string; // where the site's name in the header leads. Defaults to the site's own front page.
   footer?: { heading: string; text: string; links: Array<{ label: string; url: string }> }; // the site's invitation to join
+};
+
+// How a person page lays out the work, and where it finds what the layout needs.
+//   timeline  one card for each appearance under year bands (timeline.ts). A picture is the Platform's own copy,
+//             at the address pictureSrc gives, and the page loads the kit's script. The layout in use.
+//   list      every item in a list of cards and rows, newest first. A video's picture comes from YouTube. The
+//             layout in use until November 18, 2026, kept for a build that asks for it (PEOPLE_LAYOUT=list).
+export type Layout = 'list' | 'timeline';
+// The layout every page uses unless it is told otherwise: the public site, the preview in a professional's note
+// and the administrator's preview together. Christina switched everyone to the timeline on November 18, 2026.
+export const DEFAULT_LAYOUT: Layout = 'timeline';
+export type PageOptions = {
+  layout?: Layout;
+  pictureSrc?: (item: Item) => string | null;
+  scriptHref?: string; // defaults to the kit's own script beside the list page
 };
 
 // What the AI Realized website shows in its header and footer, read from the live site on November 16, 2026.
@@ -41,90 +52,15 @@ export const AI_REALIZED: Required<Pick<SiteConfig, 'siteName' | 'homeUrl' | 'fo
   },
 };
 
-const ESCAPES: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
-export const esc = (value: unknown): string => String(value).replace(/[&<>"']/g, (c) => ESCAPES[c] as string);
-
-const text = (value: unknown): string | null => (typeof value === 'string' && value.trim() !== '' ? value.trim() : null);
-
-// Only ordinary web links are ever written into a page.
-export function safeUrl(value: unknown): string | null {
-  if (typeof value !== 'string') return null;
-  try {
-    const u = new URL(value);
-    return u.protocol === 'https:' || u.protocol === 'http:' ? u.toString() : null;
-  } catch {
-    return null;
-  }
-}
-
 export const personUrl = (config: SiteConfig, slug: string): string => `${config.siteBaseUrl}${config.peoplePath}/${slug}/`;
 export const listUrl = (config: SiteConfig): string => `${config.siteBaseUrl}${config.peoplePath}/`;
-
-const ROLE: Record<string, string> = {
-  keynote: 'Keynote speaker', speaker: 'Speaker', panelist: 'Panelist', moderator: 'Moderator', presenter: 'Presenter', host: 'Host', guest: 'Guest',
-  // "subject" is someone an article or a readout features without having written it.
-  author: 'Author', subject: 'Featured in',
-};
-const KIND: Record<string, string> = {
-  talk: 'Talk', panel: 'Panel', podcast_episode: 'Podcast episode', article: 'Article', video: 'Video', clip: 'Clip', quote: 'Quote',
-  event: 'Event',
-};
-// "partner_article" is something AI Realized published that is attached to an appearance: a readout, an article.
-const SOURCE: Record<string, string> = { redcircle: 'AI Realized Podcast', youtube: 'YouTube', substack: 'AI Realized Now', partner_work: 'AI Realized', partner_article: 'AI Realized' };
-
-// The person's role in an item, in plain words: the wording set on the appearance record when there is one,
-// otherwise every role they had ("Speaker and moderator").
-function roleText(item: Item): string {
-  const worded = text(item.role_label);
-  if (worded) return worded;
-  const roles = Array.isArray(item.roles) && item.roles.length > 0 ? item.roles : [item.role];
-  const names = roles.map((r, i) => (i === 0 ? (ROLE[r] ?? r) : (ROLE[r] ?? r).toLowerCase()));
-  return names.length > 1 ? `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}` : (names[0] ?? '');
-}
-
-function sourceName(link: { url: string; source: string | null }): string {
-  if (link.source && SOURCE[link.source]) return SOURCE[link.source] as string;
-  return new URL(link.url).hostname.replace(/^www\./, '');
-}
-
-function longDate(day: string): string {
-  const d = new Date(`${day}T00:00:00Z`);
-  return Number.isNaN(d.getTime()) ? day : new Intl.DateTimeFormat('en-US', { dateStyle: 'long', timeZone: 'UTC' }).format(d);
-}
-
-// Media plays in place, from where it is hosted (R73). Nothing loads until the visitor opens it.
-function player(url: string, title: string): string {
-  const u = new URL(url);
-  const host = u.hostname.replace(/^www\./, '');
-  const id = host === 'youtu.be' ? u.pathname.slice(1) : host.endsWith('youtube.com') ? u.searchParams.get('v') : null;
-  if (id && /^[A-Za-z0-9_-]{6,20}$/.test(id)) {
-    // The card's picture is YouTube's own picture of the video, loaded from YouTube. The video itself loads only
-    // when the visitor opens it, in YouTube's no-cookie player. YouTube's player refuses to start ("Error 153")
-    // unless the frame's request says which site embeds it, so the frame states the site and nothing more: the
-    // origin, never the page's address. That holds whatever referrer rule the page itself is served with, so a
-    // preview whose address holds a token still passes on no part of that address.
-    return `<details class="player"><summary><img class="thumb" src="https://i.ytimg.com/vi/${id}/hqdefault.jpg" alt="" loading="lazy" width="480" height="360"><span class="play">Play the video here</span></summary><iframe src="https://www.youtube-nocookie.com/embed/${id}" title="${esc(title)}" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></details>`;
-  }
-  if (/\.(mp3|m4a)$/i.test(u.pathname)) {
-    return `<audio class="player" controls preload="none" src="${esc(url)}" aria-label="${esc(`Listen to ${title}`)}"></audio>`;
-  }
-  return '';
-}
-
-// Whether an item has something that plays in place.
-function plays(item: Item): boolean {
-  return item.links.some((l) => {
-    const url = safeUrl(l.url);
-    return url !== null && player(url, item.title) !== '';
-  });
-}
 
 // The order the API gives is kept (newest first). Within one day, what does not play comes first, so an event's
 // own row sits right above the recordings of it.
 function inOrder(items: Item[]): Item[] {
   return items
     .map((item, i) => ({ item, i, plain: plays(item) ? 1 : 0 }))
-    .sort((a, b) => (a.item.published_on === b.item.published_on && a.item.published_on ? a.plain - b.plain || a.i - b.i : a.i - b.i))
+    .sort((a, b) => (dateOf(a.item) === dateOf(b.item) && dateOf(a.item) ? a.plain - b.plain || a.i - b.i : a.i - b.i))
     .map((x) => x.item);
 }
 
@@ -136,7 +72,7 @@ function itemHtml(item: Item): string {
   const facts = [
     `<span class="role">${esc(roleText(item))}</span>`,
     `<span class="kind">${esc(KIND[item.kind] ?? item.kind)}</span>`,
-    item.published_on ? `<time datetime="${esc(item.published_on)}">${esc(longDate(item.published_on))}</time>` : '',
+    dateOf(item) ? `<time datetime="${esc(dateOf(item) as string)}">${esc(longDate(dateOf(item) as string))}</time>` : '',
     first ? `<span class="source">${esc(sourceName(first))}</span>` : '',
   ].filter((f) => f !== '');
   // Other places the same item is published. An audio file is played here, not listed as a place.
@@ -200,7 +136,7 @@ ${join}<p class="legal"><a href="${esc(config.privacyPolicyUrl)}">Privacy policy
 // A person page. The order follows R65: the photo, then the name, the current title and company, the topics the
 // person is known for, and a short bio. Then the work, newest first, each item with its source, date and role
 // (R66, R67). Items are grouped by topic once topics exist. Until then they are listed by date.
-export function renderPersonPage(person: Person, structuredData: unknown, config: SiteConfig, photoSrc: string | null): string {
+export function renderPersonPage(person: Person, structuredData: unknown, config: SiteConfig, photoSrc: string | null, page: PageOptions = {}): string {
   const f = person.fields;
   const name = text(f.name);
   if (!name) throw new Error('a person page needs a published name');
@@ -210,7 +146,12 @@ export function renderPersonPage(person: Person, structuredData: unknown, config
   const linkedin = safeUrl(f.linkedin_url);
   const topics = Array.isArray(f.topics) ? f.topics.map(text).filter((t): t is string => t !== null) : [];
   const role = [title, company].filter((x): x is string => x !== null).join(', ');
-  const items = [...(person.items ?? [])].sort((a, b) => (b.published_on ?? '').localeCompare(a.published_on ?? '') || a.title.localeCompare(b.title));
+  const items = [...(person.items ?? [])].sort((a, b) => (dateOf(b) ?? '').localeCompare(dateOf(a) ?? '') || a.title.localeCompare(b.title));
+
+  const timeline = (page.layout ?? DEFAULT_LAYOUT) === 'timeline';
+  const work = timeline
+    ? timelineHtml(items, { pictureSrc: page.pictureSrc ?? (() => null) })
+    : `<ul class="items">${inOrder(items).map(itemHtml).join('\n')}</ul>`;
 
   // A bio keeps its paragraphs: a blank line starts a new one.
   const paragraphs = bio ? bio.split(/\n\s*\n/).map((x) => x.trim()).filter((x) => x !== '') : [];
@@ -227,15 +168,18 @@ ${topics.length ? `<ul class="topics" aria-label="Known for">${topics.map((t) =>
 ${paragraphs.length || linkedin || items.length ? `<div class="person-body">
 ${paragraphs.length ? `<section aria-labelledby="about"><h2 id="about">About</h2>${paragraphs.map((x) => `<p class="bio">${esc(x)}</p>`).join('')}</section>` : ''}
 ${linkedin ? `<p class="links"><a class="button" href="${esc(linkedin)}" rel="me">${esc(name)} on LinkedIn</a></p>` : ''}
-${items.length ? `<section aria-labelledby="work"><h2 id="work">Work</h2><ul class="items">${inOrder(items).map(itemHtml).join('\n')}</ul></section>` : ''}
+${items.length ? `<section aria-labelledby="work"><h2 id="work">Work</h2>${work}</section>` : ''}
 </div>` : ''}
 </article>`;
 
   // The structured data the API supplied goes in unchanged. "<" is written as its JSON escape so that no text inside
   // it can end the script element. The data a reader parses is identical.
   const ld = structuredData ? `<script type="application/ld+json">${JSON.stringify(structuredData).replace(/</g, '\\u003c')}</script>\n` : '';
+  // The timeline's ribbon and arrows are the kit's own script, a file beside the stylesheet. Without it a card
+  // opens its list view, and the page still works.
+  const script = timeline ? `<script type="module" src="${esc(page.scriptHref ?? `${config.peoplePath}/people.js`)}"></script>\n` : '';
   const description = [name, role].filter((x) => x !== '').join(': ');
-  return shell(config, `${name} | ${config.siteName}`, description, personUrl(config, person.slug), body, ld);
+  return shell(config, `${name} | ${config.siteName}`, description, personUrl(config, person.slug), body, ld + script);
 }
 
 // The page that lists the live person pages and links to each one (website minimum, item 7).
